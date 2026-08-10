@@ -503,12 +503,13 @@ curl <span id="baseUrl4">http://localhost:3000</span>/api/weather?ip=8.8.8.8</co
 
     <!-- Demo -->
     <h2 id="demo">在线演示</h2>
-    <p>直接调用 API 获取当前天气数据并展示：</p>
+    <p>直接调用 API 获取当前天气数据并展示。IP 定位精度为省级，GPS 定位可精确到城市：</p>
     <div class="try-section">
       <div class="try-header">
         <input type="text" class="try-input" id="demoCity" placeholder="城市名，如：邢台" style="width:160px">
         <button class="try-btn" onclick="loadDemo()">查询天气</button>
-        <button class="try-btn" onclick="loadDemo('auto')" style="background:var(--accent-dim)">自动定位</button>
+        <button class="try-btn" onclick="loadDemoGps()" style="background:var(--green);color:#000">GPS 精确定位</button>
+        <button class="try-btn" onclick="loadDemo('auto')" style="background:var(--accent-dim)">IP 定位</button>
       </div>
       <div id="demoContent"></div>
     </div>
@@ -674,11 +675,16 @@ JerryWeather.clearCache();</code></pre>
   }
 
   // Demo
-  async function loadDemo(mode) {
+  async function loadDemo(mode, source) {
     const city = document.getElementById('demoCity').value.trim();
     const content = document.getElementById('demoContent');
     let url = '/api/weather';
-    if (mode !== 'auto' && city) url += '?city=' + encodeURIComponent(city);
+    if (mode !== 'auto' && mode !== 'gps' && city) {
+      url += '?city=' + encodeURIComponent(city);
+    }
+    // GPS mode already has coords in URL, auto mode uses IP
+
+    const locSource = source || (mode === 'gps' ? 'gps' : 'ip');
 
     content.innerHTML = '<div style="text-align:center;padding:20px"><span class="spinner-sm"></span><p style="margin-top:8px;color:var(--text-muted)">加载中...</p></div>';
 
@@ -689,73 +695,125 @@ JerryWeather.clearCache();</code></pre>
         content.innerHTML = `<div style="color:var(--red);padding:16px">${data.message || '获取失败'}</div>`;
         return;
       }
-
-      const { location, current, units } = data;
-      const weekdays = ['周日','周一','周二','周三','周四','周五','周六'];
-
-      const gridItems = [
-        ['体感温度', Math.round(current.apparentTemperature) + units.temperature],
-        ['湿度', current.humidity + '%'],
-        ['风速', current.windSpeed + ' ' + units.windSpeed + ' ' + current.windDirectionText],
-        ['阵风', current.windGusts + ' ' + units.windSpeed],
-        ['气压', current.pressure + ' ' + units.pressure],
-        ['云量', current.cloudCover + '%'],
-        ['降水量', current.precipitation + ' ' + units.precipitation],
-        ['能见度', current.visibility >= 1000 ? (current.visibility/1000).toFixed(1)+' km' : current.visibility + ' m'],
-        ['紫外线', current.uvIndex.toFixed(1)],
-        ['状态', current.isDay ? '白天' : '夜晚'],
-      ];
-
-      const hourlyHtml = data.hourly.slice(0, 12).map(h => {
-        const t = new Date(h.time);
-        return `<div style="text-align:center;min-width:60px">
-          <div style="font-size:0.7rem;color:var(--text-muted)">${t.getHours().toString().padStart(2,'0')}:00</div>
-          <div style="font-size:1.3rem">${getIcon(h.weatherCode)}</div>
-          <div style="font-size:0.85rem;font-weight:600">${Math.round(h.temperature)}°</div>
-          <div style="font-size:0.65rem;color:#4299e1">${h.precipitationProbability > 0 ? '💧'+h.precipitationProbability+'%' : ''}</div>
-        </div>`;
-      }).join('');
-
-      const dailyHtml = data.daily.map((d, i) => {
-        const date = new Date(d.date);
-        const label = i === 0 ? '今天' : i === 1 ? '明天' : weekdays[date.getDay()];
-        return `<div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--border)">
-          <div style="width:50px;font-weight:600">${label}</div>
-          <div style="font-size:1.2rem">${getIcon(d.weatherCode)}</div>
-          <div style="flex:1;color:var(--text-dim);font-size:0.8rem">${d.weatherDescriptionZh}</div>
-          <div style="font-size:0.85rem"><b>${Math.round(d.tempMax)}°</b> <span style="color:var(--text-muted)">/ ${Math.round(d.tempMin)}°</span></div>
-        </div>`;
-      }).join('');
-
-      content.innerHTML = `
-        <div class="demo-card" style="margin:0;border:none;background:transparent;padding:0">
-          <div class="demo-location">
-            <div>
-              <h3>${location.city}</h3>
-              <div style="font-size:0.8rem;color:var(--text-muted)">${location.region}${location.region?', ':''}${location.country} · ${current.weatherDescriptionZh}</div>
-            </div>
-            <div class="meta">
-              <div>IP: ${location.ip}</div>
-              <div>${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}</div>
-              <div>TZ: ${location.timezone}</div>
-            </div>
-          </div>
-          <div class="demo-current">
-            <div class="demo-icon">${getIcon(current.weatherCode)}</div>
-            <div>
-              <div class="demo-temp">${Math.round(current.temperature)}${units.temperature}</div>
-              <div class="demo-desc">${current.weatherDescription} · 体感 ${Math.round(current.apparentTemperature)}${units.temperature}</div>
-            </div>
-          </div>
-          <div class="demo-grid">${gridItems.map(([label, value]) => `<div class="demo-item"><div class="label">${label}</div><div class="value">${value}</div></div>`).join('')}</div>
-          <h4 style="margin-top:16px">逐时预报</h4>
-          <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px">${hourlyHtml}</div>
-          <h4 style="margin-top:12px">每日预报</h4>
-          ${dailyHtml}
-        </div>`;
+      renderDemo(data, locSource);
     } catch (e) {
       content.innerHTML = `<div style="color:var(--red);padding:16px">Error: ${e.message}</div>`;
     }
+  }
+
+  // GPS demo - uses browser geolocation first, falls back to IP
+  async function loadDemoGps() {
+    const content = document.getElementById('demoContent');
+
+    if (!navigator.geolocation) {
+      content.innerHTML = '<div style="color:var(--yellow);padding:12px;text-align:center">浏览器不支持 GPS 定位，已切换到 IP 定位</div>';
+      setTimeout(() => loadDemo('auto'), 1200);
+      return;
+    }
+
+    content.innerHTML = '<div style="text-align:center;padding:20px"><span class="spinner-sm"></span><p style="margin-top:8px;color:var(--text-muted)">正在获取 GPS 定位（请在浏览器弹窗中允许）...</p></div>';
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        // Temporarily set the URL for loadDemo
+        const url = `/api/weather?lat=${lat}&lon=${lon}`;
+        const demoContent = document.getElementById('demoContent');
+        demoContent.innerHTML = '<div style="text-align:center;padding:20px"><span class="spinner-sm"></span><p style="margin-top:8px;color:var(--text-muted)">获取天气数据中...</p></div>';
+
+        try {
+          const resp = await fetch(url);
+          const data = await resp.json();
+          if (!data.success) {
+            demoContent.innerHTML = `<div style="color:var(--red);padding:16px">${data.message || '获取失败'}</div>`;
+            return;
+          }
+          renderDemo(data, 'gps');
+        } catch (e) {
+          demoContent.innerHTML = `<div style="color:var(--red);padding:16px">Error: ${e.message}</div>`;
+        }
+      },
+      (err) => {
+        const msg = err.code === 1 ? '用户拒绝了定位授权' : err.message;
+        content.innerHTML = `<div style="color:var(--yellow);padding:12px;text-align:center">GPS 定位失败（${msg}），已切换到 IP 定位</div>`;
+        setTimeout(() => loadDemo('auto'), 1500);
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 }
+    );
+  }
+
+  // Shared demo render function
+  function renderDemo(data, locSource) {
+    const content = document.getElementById('demoContent');
+    const { location, current, units } = data;
+    const weekdays = ['周日','周一','周二','周三','周四','周五','周六'];
+
+    const isGps = locSource === 'gps' || location.provider === 'gps' || location.ip === 'coordinates';
+    const sourceBadge = isGps
+      ? '<span style="font-size:0.65rem;background:rgba(74,222,128,0.15);color:var(--green);padding:2px 6px;border-radius:3px;margin-left:6px;border:1px solid rgba(74,222,128,0.3)">GPS</span>'
+      : '<span style="font-size:0.65rem;background:rgba(251,191,36,0.15);color:var(--yellow);padding:2px 6px;border-radius:3px;margin-left:6px;border:1px solid rgba(251,191,36,0.3)" title="IP定位精度为省级">IP</span>';
+
+    const gridItems = [
+      ['体感温度', Math.round(current.apparentTemperature) + units.temperature],
+      ['湿度', current.humidity + '%'],
+      ['风速', current.windSpeed + ' ' + units.windSpeed + ' ' + current.windDirectionText],
+      ['阵风', current.windGusts + ' ' + units.windSpeed],
+      ['气压', current.pressure + ' ' + units.pressure],
+      ['云量', current.cloudCover + '%'],
+      ['降水量', current.precipitation + ' ' + units.precipitation],
+      ['能见度', current.visibility >= 1000 ? (current.visibility/1000).toFixed(1)+' km' : current.visibility + ' m'],
+      ['紫外线', current.uvIndex.toFixed(1)],
+      ['状态', current.isDay ? '白天' : '夜晚'],
+    ];
+
+    const hourlyHtml = data.hourly.slice(0, 12).map(h => {
+      const t = new Date(h.time);
+      return `<div style="text-align:center;min-width:60px">
+        <div style="font-size:0.7rem;color:var(--text-muted)">${t.getHours().toString().padStart(2,'0')}:00</div>
+        <div style="font-size:1.3rem">${getIcon(h.weatherCode)}</div>
+        <div style="font-size:0.85rem;font-weight:600">${Math.round(h.temperature)}°</div>
+        <div style="font-size:0.65rem;color:#4299e1">${h.precipitationProbability > 0 ? '💧'+h.precipitationProbability+'%' : ''}</div>
+      </div>`;
+    }).join('');
+
+    const dailyHtml = data.daily.map((d, i) => {
+      const date = new Date(d.date);
+      const label = i === 0 ? '今天' : i === 1 ? '明天' : weekdays[date.getDay()];
+      return `<div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--border)">
+        <div style="width:50px;font-weight:600">${label}</div>
+        <div style="font-size:1.2rem">${getIcon(d.weatherCode)}</div>
+        <div style="flex:1;color:var(--text-dim);font-size:0.8rem">${d.weatherDescriptionZh}</div>
+        <div style="font-size:0.85rem"><b>${Math.round(d.tempMax)}°</b> <span style="color:var(--text-muted)">/ ${Math.round(d.tempMin)}°</span></div>
+      </div>`;
+    }).join('');
+
+    content.innerHTML = `
+      <div class="demo-card" style="margin:0;border:none;background:transparent;padding:0">
+        <div class="demo-location">
+          <div>
+            <h3>${location.city}${sourceBadge}</h3>
+            <div style="font-size:0.8rem;color:var(--text-muted)">${location.region}${location.region?', ':''}${location.country} · ${current.weatherDescriptionZh}</div>
+          </div>
+          <div class="meta">
+            <div>IP: ${location.ip}</div>
+            <div>${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}</div>
+            <div>TZ: ${location.timezone}</div>
+          </div>
+        </div>
+        <div class="demo-current">
+          <div class="demo-icon">${getIcon(current.weatherCode)}</div>
+          <div>
+            <div class="demo-temp">${Math.round(current.temperature)}${units.temperature}</div>
+            <div class="demo-desc">${current.weatherDescription} · 体感 ${Math.round(current.apparentTemperature)}${units.temperature}</div>
+          </div>
+        </div>
+        <div class="demo-grid">${gridItems.map(([label, value]) => `<div class="demo-item"><div class="label">${label}</div><div class="value">${value}</div></div>`).join('')}</div>
+        <h4 style="margin-top:16px">逐时预报</h4>
+        <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px">${hourlyHtml}</div>
+        <h4 style="margin-top:12px">每日预报</h4>
+        ${dailyHtml}
+      </div>`;
   }
 
   function getIcon(code) {
@@ -763,7 +821,7 @@ JerryWeather.clearCache();</code></pre>
     return icons[code] || '❓';
   }
 
-  // Auto-load demo on page load
+  // Auto-load demo on page load (IP-based, no GPS prompt)
   loadDemo('auto');
 </script>
 </body>
