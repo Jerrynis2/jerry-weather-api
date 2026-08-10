@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JerryWeatherAPI · 接口文档</title>
+  <link rel="icon" type="image/png" href="https://img.jerry-nis.top/d8703c5c-4c4a-49cc-bd94-3363c9eda2d8.png">
+  <style>
+    :root {
+      --bg: #0f1117;
+      --bg-card: #1a1d28;
+      --bg-code: #15171f;
+      --border: #2a2e3c;
+      --text: #e4e6eb;
+      --text-dim: #8b8fa3;
+      --text-muted: #5c6073;
+      --accent: #6c8eef;
+      --accent-dim: #4a6a8e;
+      --green: #4ade80;
+      --yellow: #fbbf24;
+      --red: #f87171;
+      --radius: 8px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans CJK SC', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      font-size: 14px;
+    }
+
+    /* Layout */
+    .layout { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 260px;
+      flex-shrink: 0;
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
+      padding: 24px 0;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .main { flex: 1; padding: 40px 48px; max-width: 900px; }
+
+    /* Sidebar */
+    .sidebar-logo {
+      padding: 0 24px 20px;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+    .sidebar-section {
+      padding: 8px 24px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-top: 12px;
+    }
+    .sidebar-link {
+      display: block;
+      padding: 6px 24px;
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.85rem;
+      transition: all 0.15s;
+      border-left: 2px solid transparent;
+    }
+    .sidebar-link:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+    .sidebar-link.active { color: var(--accent); border-left-color: var(--accent); }
+
+    /* Headings */
+    h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; }
+    h2 {
+      font-size: 1.3rem; font-weight: 700; margin-top: 48px; margin-bottom: 16px;
+      padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    }
+    h3 { font-size: 1.05rem; font-weight: 600; margin-top: 28px; margin-bottom: 10px; color: var(--text); }
+    h4 { font-size: 0.9rem; font-weight: 600; margin-top: 16px; margin-bottom: 6px; color: var(--text-dim); }
+    p { margin-bottom: 12px; color: var(--text-dim); }
+    a { color: var(--accent); text-decoration: none; }
+
+    /* Tags */
+    .method-tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    .method-get { background: rgba(74,222,128,0.15); color: var(--green); }
+    .endpoint-path {
+      font-family: 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+
+    /* Code blocks */
+    pre {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      overflow-x: auto;
+      font-family: 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      margin: 12px 0;
+    }
+    code {
+      font-family: 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 0.85em;
+      background: var(--bg-code);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--accent);
+    }
+    pre code { background: none; padding: 0; color: var(--text); }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 0.82rem;
+    }
+    th {
+      text-align: left;
+      padding: 8px 12px;
+      background: var(--bg-card);
+      color: var(--text-dim);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-dim);
+    }
+    td code { font-size: 0.8rem; }
+    .type-badge {
+      display: inline-block;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 0.7rem;
+      background: rgba(108,142,239,0.15);
+      color: var(--accent);
+      font-family: monospace;
+    }
+    .required { color: var(--red); font-size: 0.7rem; }
+
+    /* Try it */
+    .try-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin: 16px 0;
+    }
+    .try-header {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .try-input {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 6px 10px;
+      color: var(--text);
+      font-size: 0.82rem;
+      font-family: monospace;
+      width: 200px;
+    }
+    .try-input:focus { outline: none; border-color: var(--accent); }
+    .try-input::placeholder { color: var(--text-muted); }
+    .try-btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 16px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .try-btn:hover { opacity: 0.85; }
+    .try-btn:disabled { opacity: 0.5; cursor: wait; }
+    .try-result {
+      background: var(--bg-code);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 0.78rem;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--text-dim);
+      margin-top: 12px;
+      display: none;
+    }
+    .try-result.visible { display: block; }
+    .try-result.success { border-left: 3px solid var(--green); }
+    .try-result.error { border-left: 3px solid var(--red); }
+
+    /* Demo */
+    .demo-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin: 16px 0;
+    }
+    .demo-location { display: flex; justify-content: space-between; margin-bottom: 16px; }
+    .demo-location h3 { margin: 0; font-size: 1.2rem; }
+    .demo-location .meta { text-align: right; font-size: 0.75rem; color: var(--text-muted); }
+    .demo-current { display: flex; align-items: center; gap: 20px; margin-bottom: 16px; }
+    .demo-icon { font-size: 3rem; }
+    .demo-temp { font-size: 2.5rem; font-weight: 300; }
+    .demo-desc { color: var(--text-dim); }
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 8px;
+    }
+    .demo-item {
+      background: var(--bg-code);
+      border-radius: 6px;
+      padding: 8px 12px;
+    }
+    .demo-item .label { font-size: 0.7rem; color: var(--text-muted); }
+    .demo-item .value { font-size: 0.95rem; font-weight: 600; }
+
+    /* Misc */
+    .info-banner {
+      background: rgba(108,142,239,0.1);
+      border: 1px solid rgba(108,142,239,0.3);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin: 16px 0;
+      font-size: 0.82rem;
+      color: var(--text-dim);
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-left: 6px;
+    }
+    .badge-green { background: rgba(74,222,128,0.15); color: var(--green); }
+    .badge-yellow { background: rgba(251,191,36,0.15); color: var(--yellow); }
+
+    .spinner-sm {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .response-key { color: var(--accent); }
+    .response-string { color: var(--green); }
+    .response-number { color: var(--yellow); }
+    .response-bool { color: var(--red); }
+    .response-null { color: var(--text-muted); }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">JerryWeatherAPI</div>
+    <div class="sidebar-section">概览</div>
+    <a class="sidebar-link" href="#overview">接口概览</a>
+    <a class="sidebar-link" href="#auth">认证与限制</a>
+    <div class="sidebar-section">端点</div>
+    <a class="sidebar-link" href="#weather">GET /api/weather</a>
+    <a class="sidebar-link" href="#location">GET /api/location</a>
+    <a class="sidebar-link" href="#health">GET /api/health</a>
+    <div class="sidebar-section">资源</div>
+    <a class="sidebar-link" href="#params">参数说明</a>
+    <a class="sidebar-link" href="#response">响应格式</a>
+    <a class="sidebar-link" href="#codes">天气代码</a>
+    <a class="sidebar-link" href="#demo">在线演示</a>
+    <a class="sidebar-link" href="#examples">代码示例</a>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main">
+    <h1>JerryWeatherAPI <span class="badge badge-green">v1.1</span></h1>
+    <p>自动获取访问者 IP 地理位置并返回对应天气信息的 RESTful API。支持按城市名、IP 地址、经纬度查询天气，数据全面，无需 API Key。</p>
+
+    <!-- Overview -->
+    <h2 id="overview">接口概览</h2>
+    <table>
+      <tr><td style="width:140px">Base URL</td><td><code id="baseUrl">http://localhost:3000</code></td></tr>
+      <tr><td>协议</td><td>HTTPS (Vercel) / HTTP (本地)</td></tr>
+      <tr><td>认证</td><td>无需认证 <span class="badge badge-green">免费</span></td></tr>
+      <tr><td>限流</td><td>每日 10,000 次 (Open-Meteo 限制)</td></tr>
+      <tr><td>缓存</td><td>5 分钟内存缓存</td></tr>
+      <tr><td>CORS</td><td>允许所有来源 (<code>*</code>)</td></tr>
+    </table>
+
+    <!-- Auth -->
+    <h2 id="auth">认证与限制</h2>
+    <div class="info-banner">
+      本 API 完全免费，无需注册或获取 API Key。所有外部数据源均为免费服务：
+      <br>天气数据由 <a href="https://open-meteo.com/" target="_blank">Open-Meteo</a> 提供，IP 定位由 <a href="http://ip-api.com/" target="_blank">ip-api.com</a> 和 <a href="https://ipwho.is/" target="_blank">ipwho.is</a> 提供。
+    </div>
+
+    <!-- Weather Endpoint -->
+    <h2 id="weather">天气查询</h2>
+    <div style="margin-bottom:12px">
+      <span class="method-tag method-get">GET</span>
+      <span class="endpoint-path">/api/weather</span>
+    </div>
+    <p>获取天气数据。支持四种查询模式（按优先级排序）：</p>
+
+    <h3>查询参数</h3>
+    <table>
+      <tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+      <tr>
+        <td><code>city</code></td>
+        <td><span class="type-badge">string</span></td>
+        <td>否</td>
+        <td>城市名称（中文或英文），如 <code>邢台</code>、<code>Beijing</code>、<code>New York</code>。使用时优先级最高</td>
+      </tr>
+      <tr>
+        <td><code>lat</code></td>
+        <td><span class="type-badge">number</span></td>
+        <td>否</td>
+        <td>纬度，需与 <code>lon</code> 同时使用。如 <code>37.07</code></td>
+      </tr>
+      <tr>
+        <td><code>lon</code></td>
+        <td><span class="type-badge">number</span></td>
+        <td>否</td>
+        <td>经度，需与 <code>lat</code> 同时使用。如 <code>114.50</code></td>
+      </tr>
+      <tr>
+        <td><code>ip</code></td>
+        <td><span class="type-badge">string</span></td>
+        <td>否</td>
+        <td>指定 IP 地址查询。如 <code>8.8.8.8</code>。不传则自动检测访问者 IP</td>
+      </tr>
+    </table>
+
+    <h3>请求示例</h3>
+    <pre><code><span style="color:var(--text-muted)"># 自动检测 IP</span>
+curl <span id="baseUrl1">http://localhost:3000</span>/api/weather
+
+<span style="color:var(--text-muted)"># 按城市查询</span>
+curl <span id="baseUrl2">http://localhost:3000</span>/api/weather?city=邢台
+
+<span style="color:var(--text-muted)"># 按经纬度查询</span>
+curl <span id="baseUrl3">http://localhost:3000</span>/api/weather?lat=37.07&lon=114.50
+
+<span style="color:var(--text-muted)"># 按指定 IP 查询</span>
+curl <span id="baseUrl4">http://localhost:3000</span>/api/weather?ip=8.8.8.8</code></pre>
+
+    <h3>交互测试</h3>
+    <div class="try-section">
+      <div class="try-header">
+        <span class="method-tag method-get">GET</span>
+        <code id="tryUrl">/api/weather</code>
+        <input type="text" class="try-input" id="weatherParam" placeholder="?city=邢台 或 ?ip=8.8.8.8" oninput="updateTryUrl()">
+        <button class="try-btn" onclick="tryWeather()">发送请求</button>
+      </div>
+      <div class="try-result" id="weatherResult"></div>
+    </div>
+
+    <!-- Location Endpoint -->
+    <h2 id="location">IP 定位调试</h2>
+    <div style="margin-bottom:12px">
+      <span class="method-tag method-get">GET</span>
+      <span class="endpoint-path">/api/location</span>
+    </div>
+    <p>调试用端点。返回检测到的 IP 地址、定位来源（provider）和地理信息，用于排查定位不准确的问题。</p>
+    <table>
+      <tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr>
+      <tr><td><code>ip</code></td><td><span class="type-badge">string</span></td><td>否</td><td>指定 IP 地址。不传则自动检测</td></tr>
+    </table>
+    <div class="try-section">
+      <div class="try-header">
+        <span class="method-tag method-get">GET</span>
+        <code>/api/location</code>
+        <input type="text" class="try-input" id="locationIp" placeholder="?ip=8.8.8.8（可选）" oninput="updateLocUrl()">
+        <button class="try-btn" onclick="tryLocation()">发送请求</button>
+      </div>
+      <div class="try-result" id="locationResult"></div>
+    </div>
+
+    <!-- Health Endpoint -->
+    <h2 id="health">健康检查</h2>
+    <div style="margin-bottom:12px">
+      <span class="method-tag method-get">GET</span>
+      <span class="endpoint-path">/api/health</span>
+    </div>
+    <p>检查 API 服务状态。无需参数。</p>
+    <div class="try-section">
+      <div class="try-header">
+        <span class="method-tag method-get">GET</span>
+        <code>/api/health</code>
+        <button class="try-btn" onclick="tryHealth()">发送请求</button>
+      </div>
+      <div class="try-result" id="healthResult"></div>
+    </div>
+
+    <!-- Parameters -->
+    <h2 id="params">参数说明</h2>
+    <p>各查询模式按以下优先级处理，仅第一个匹配的模式会被执行：</p>
+    <table>
+      <tr><th>优先级</th><th>模式</th><th>所需参数</th><th>定位来源</th></tr>
+      <tr><td>1</td><td>城市搜索</td><td><code>city</code></td><td>Open-Meteo Geocoding API</td></tr>
+      <tr><td>2</td><td>坐标查询</td><td><code>lat</code> + <code>lon</code></td><td>直接使用坐标</td></tr>
+      <tr><td>3</td><td>IP 查询</td><td><code>ip</code></td><td>ip-api.com → ipwho.is</td></tr>
+      <tr><td>4</td><td>自动检测</td><td>（无参数）</td><td>从请求头提取 IP</td></tr>
+    </table>
+
+    <!-- Response Format -->
+    <h2 id="response">响应格式</h2>
+    <h3>成功响应 (200)</h3>
+    <pre><code id="respExample">{
+  <span class="response-key">"success"</span>: <span class="response-bool">true</span>,
+  <span class="response-key">"cached"</span>: <span class="response-bool">false</span>,
+  <span class="response-key">"location"</span>: {
+    <span class="response-key">"ip"</span>: <span class="response-string">"xxx.xxx.xxx.xxx"</span>,
+    <span class="response-key">"city"</span>: <span class="response-string">"邢台"</span>,
+    <span class="response-key">"region"</span>: <span class="response-string">"Hebei"</span>,
+    <span class="response-key">"country"</span>: <span class="response-string">"China"</span>,
+    <span class="response-key">"latitude"</span>: <span class="response-number">37.0682</span>,
+    <span class="response-key">"longitude"</span>: <span class="response-number">114.5048</span>,
+    <span class="response-key">"timezone"</span>: <span class="response-string">"Asia/Shanghai"</span>
+  },
+  <span class="response-key">"current"</span>: {
+    <span class="response-key">"temperature"</span>: <span class="response-number">28.5</span>,
+    <span class="response-key">"apparentTemperature"</span>: <span class="response-number">31.2</span>,
+    <span class="response-key">"weatherCode"</span>: <span class="response-number">0</span>,
+    <span class="response-key">"weatherDescription"</span>: <span class="response-string">"Clear sky"</span>,
+    <span class="response-key">"weatherDescriptionZh"</span>: <span class="response-string">"晴天"</span>,
+    <span class="response-key">"humidity"</span>: <span class="response-number">52</span>,
+    <span class="response-key">"windSpeed"</span>: <span class="response-number">8.5</span>,
+    <span class="response-key">"windDirection"</span>: <span class="response-number">180</span>,
+    <span class="response-key">"windDirectionText"</span>: <span class="response-string">"S"</span>,
+    <span class="response-key">"pressure"</span>: <span class="response-number">1010.2</span>,
+    <span class="response-key">"cloudCover"</span>: <span class="response-number">0</span>,
+    <span class="response-key">"precipitation"</span>: <span class="response-number">0</span>,
+    <span class="response-key">"uvIndex"</span>: <span class="response-number">5.8</span>,
+    <span class="response-key">"visibility"</span>: <span class="response-number">16000</span>,
+    <span class="response-key">"isDay"</span>: <span class="response-bool">true</span>
+  },
+  <span class="response-key">"hourly"</span>: [ <span class="response-null">/* 未来 48 小时 */</span> ],
+  <span class="response-key">"daily"</span>: [ <span class="response-null">/* 未来 7 天 */</span> ],
+  <span class="response-key">"fetchedAt"</span>: <span class="response-string">"2026-08-10T10:00:00.000Z"</span>,
+  <span class="response-key">"units"</span>: {
+    <span class="response-key">"temperature"</span>: <span class="response-string">"°C"</span>,
+    <span class="response-key">"windSpeed"</span>: <span class="response-string">"km/h"</span>,
+    <span class="response-key">"precipitation"</span>: <span class="response-string">"mm"</span>,
+    <span class="response-key">"pressure"</span>: <span class="response-string">"hPa"</span>,
+    <span class="response-key">"visibility"</span>: <span class="response-string">"meters"</span>
+  }
+}</code></pre>
+
+    <h3>错误响应 (500)</h3>
+    <pre><code>{
+  <span class="response-key">"success"</span>: <span class="response-bool">false</span>,
+  <span class="response-key">"error"</span>: <span class="response-string">"INTERNAL_ERROR"</span>,
+  <span class="response-key">"message"</span>: <span class="response-string">"Unable to determine geolocation..."</span>,
+  <span class="response-key">"timestamp"</span>: <span class="response-string">"2026-08-10T10:00:00.000Z"</span>
+}</code></pre>
+
+    <!-- Weather Codes -->
+    <h2 id="codes">天气代码参考</h2>
+    <p>WMO Weather interpretation codes (来自 Open-Meteo)：</p>
+    <table id="codeTable">
+      <tr><th>Code</th><th>英文</th><th>中文</th><th>图标</th></tr>
+    </table>
+
+    <!-- Demo -->
+    <h2 id="demo">在线演示</h2>
+    <p>直接调用 API 获取当前天气数据并展示：</p>
+    <div class="try-section">
+      <div class="try-header">
+        <input type="text" class="try-input" id="demoCity" placeholder="城市名，如：邢台" style="width:160px">
+        <button class="try-btn" onclick="loadDemo()">查询天气</button>
+        <button class="try-btn" onclick="loadDemo('auto')" style="background:var(--accent-dim)">自动定位</button>
+      </div>
+      <div id="demoContent"></div>
+    </div>
+
+    <!-- Examples -->
+    <h2 id="examples">代码示例</h2>
+
+    <h3>JavaScript (fetch)</h3>
+    <pre><code><span style="color:var(--text-muted)">// 按城市查询</span>
+const resp = <span style="color:var(--accent)">await</span> fetch(<span class="response-string">'/api/weather?city=邢台'</span>);
+const data = <span style="color:var(--accent)">await</span> resp.json();
+console.log(data.location.city);        <span style="color:var(--text-muted)">// "邢台"</span>
+console.log(data.current.temperature);   <span style="color:var(--text-muted)">// 28.5</span>
+console.log(data.current.weatherDescriptionZh); <span style="color:var(--text-muted)">// "晴天"</span>
+
+<span style="color:var(--text-muted)">// 自动定位</span>
+const resp2 = <span style="color:var(--accent)">await</span> fetch(<span class="response-string">'/api/weather'</span>);
+const data2 = <span style="color:var(--accent)">await</span> resp2.json();</code></pre>
+
+    <h3>Python (requests)</h3>
+    <pre><code><span style="color:var(--accent)">import</span> requests
+
+<span style="color:var(--text-muted)"># 按城市查询</span>
+resp = requests.get(<span class="response-string">'https://your-domain.vercel.app/api/weather'</span>,
+                    params={<span class="response-string">'city'</span>: <span class="response-string">'邢台'</span>})
+data = resp.json()
+print(data[<span class="response-string">'location'</span>][<span class="response-string">'city'</span>])      <span style="color:var(--text-muted)"># 邢台</span>
+print(data[<span class="response-string">'current'</span>][<span class="response-string">'temperature'</span>])  <span style="color:var(--text-muted)"># 28.5</span></code></pre>
+
+    <h3>Node.js (axios)</h3>
+    <pre><code><span style="color:var(--accent)">const</span> axios = <span style="color:var(--accent)">require</span>(<span class="response-string">'axios'</span>);
+
+<span style="color:var(--accent)">const</span> { data } = <span style="color:var(--accent)">await</span> axios.get(<span class="response-string">'/api/weather'</span>, {
+  params: { city: <span class="response-string">'邢台'</span> }
+});
+console.log(data.current.weatherDescriptionZh); <span style="color:var(--text-muted)">// "晴天"</span></code></pre>
+
+    <p style="margin-top:40px;color:var(--text-muted);font-size:0.78rem;border-top:1px solid var(--border);padding-top:16px">
+      JerryWeatherAPI v1.1 · Powered by Open-Meteo & ip-api.com · 无需 API Key · 可部署在 Vercel
+    </p>
+  </main>
+</div>
+
+<script>
+  // Set base URL
+  const baseUrl = location.origin;
+  document.querySelectorAll('[id^="baseUrl"]').forEach(el => el.textContent = baseUrl);
+
+  // Populate weather code table
+  const codes = [
+    [0,'Clear sky','晴天','☀️'],[1,'Mainly clear','大部晴朗','🌤️'],[2,'Partly cloudy','多云','⛅'],[3,'Overcast','阴天','☁️'],
+    [45,'Fog','雾','🌫️'],[48,'Depositing rime fog','雾凇','🌫️'],
+    [51,'Light drizzle','小毛毛雨','🌦️'],[53,'Moderate drizzle','中毛毛雨','🌦️'],[55,'Dense drizzle','大毛毛雨','🌧️'],
+    [56,'Light freezing drizzle','冻毛毛雨','🌧️'],[57,'Dense freezing drizzle','强冻毛毛雨','🌧️'],
+    [61,'Slight rain','小雨','🌦️'],[63,'Moderate rain','中雨','🌧️'],[65,'Heavy rain','大雨','🌧️'],
+    [66,'Light freezing rain','冻雨','🌧️'],[67,'Heavy freezing rain','强冻雨','🌧️'],
+    [71,'Slight snow fall','小雪','🌨️'],[73,'Moderate snow fall','中雪','🌨️'],[75,'Heavy snow fall','大雪','❄️'],[77,'Snow grains','冰粒','🌨️'],
+    [80,'Slight rain showers','小阵雨','🌦️'],[81,'Moderate rain showers','中阵雨','🌧️'],[82,'Violent rain showers','强阵雨','⛈️'],
+    [85,'Slight snow showers','小阵雪','🌨️'],[86,'Heavy snow showers','强阵雪','❄️'],
+    [95,'Thunderstorm','雷暴','⛈️'],[96,'Thunderstorm with slight hail','雷暴伴小冰雹','⛈️'],[99,'Thunderstorm with heavy hail','雷暴伴大冰雹','⛈️'],
+  ];
+  const codeTable = document.getElementById('codeTable');
+  codes.forEach(([code, en, zh, icon]) => {
+    codeTable.innerHTML += `<tr><td><code>${code}</code></td><td>${en}</td><td>${zh}</td><td>${icon}</td></tr>`;
+  });
+
+  // Try-it functions
+  function updateTryUrl() {
+    const param = document.getElementById('weatherParam').value;
+    document.getElementById('tryUrl').textContent = '/api/weather' + (param || '');
+  }
+  function updateLocUrl() {
+    // no-op, just for UX
+  }
+
+  async function sendRequest(url, resultEl, btn) {
+    const result = document.getElementById(resultEl);
+    result.classList.add('visible');
+    result.classList.remove('success', 'error');
+    result.innerHTML = '<span class="spinner-sm"></span> 请求中...';
+    if (btn) { btn.disabled = true; btn.textContent = '请求中...'; }
+    try {
+      const resp = await fetch(url);
+      const data = await resp.json();
+      result.classList.add(resp.ok ? 'success' : 'error');
+      result.textContent = JSON.stringify(data, null, 2);
+    } catch (e) {
+      result.classList.add('error');
+      result.textContent = 'Error: ' + e.message;
+    }
+    if (btn) { btn.disabled = false; btn.textContent = '发送请求'; }
+  }
+
+  function tryWeather() {
+    const param = document.getElementById('weatherParam').value;
+    sendRequest('/api/weather' + (param || ''), 'weatherResult', event.target);
+  }
+  function tryLocation() {
+    const param = document.getElementById('locationIp').value;
+    sendRequest('/api/location' + (param || ''), 'locationResult', event.target);
+  }
+  function tryHealth() {
+    sendRequest('/api/health', 'healthResult', event.target);
+  }
+
+  // Demo
+  async function loadDemo(mode) {
+    const city = document.getElementById('demoCity').value.trim();
+    const content = document.getElementById('demoContent');
+    let url = '/api/weather';
+    if (mode !== 'auto' && city) url += '?city=' + encodeURIComponent(city);
+
+    content.innerHTML = '<div style="text-align:center;padding:20px"><span class="spinner-sm"></span><p style="margin-top:8px;color:var(--text-muted)">加载中...</p></div>';
+
+    try {
+      const resp = await fetch(url);
+      const data = await resp.json();
+      if (!data.success) {
+        content.innerHTML = `<div style="color:var(--red);padding:16px">${data.message || '获取失败'}</div>`;
+        return;
+      }
+
+      const { location, current, units } = data;
+      const weekdays = ['周日','周一','周二','周三','周四','周五','周六'];
+
+      const gridItems = [
+        ['体感温度', Math.round(current.apparentTemperature) + units.temperature],
+        ['湿度', current.humidity + '%'],
+        ['风速', current.windSpeed + ' ' + units.windSpeed + ' ' + current.windDirectionText],
+        ['阵风', current.windGusts + ' ' + units.windSpeed],
+        ['气压', current.pressure + ' ' + units.pressure],
+        ['云量', current.cloudCover + '%'],
+        ['降水量', current.precipitation + ' ' + units.precipitation],
+        ['能见度', current.visibility >= 1000 ? (current.visibility/1000).toFixed(1)+' km' : current.visibility + ' m'],
+        ['紫外线', current.uvIndex.toFixed(1)],
+        ['状态', current.isDay ? '白天' : '夜晚'],
+      ];
+
+      const hourlyHtml = data.hourly.slice(0, 12).map(h => {
+        const t = new Date(h.time);
+        return `<div style="text-align:center;min-width:60px">
+          <div style="font-size:0.7rem;color:var(--text-muted)">${t.getHours().toString().padStart(2,'0')}:00</div>
+          <div style="font-size:1.3rem">${getIcon(h.weatherCode)}</div>
+          <div style="font-size:0.85rem;font-weight:600">${Math.round(h.temperature)}°</div>
+          <div style="font-size:0.65rem;color:#4299e1">${h.precipitationProbability > 0 ? '💧'+h.precipitationProbability+'%' : ''}</div>
+        </div>`;
+      }).join('');
+
+      const dailyHtml = data.daily.map((d, i) => {
+        const date = new Date(d.date);
+        const label = i === 0 ? '今天' : i === 1 ? '明天' : weekdays[date.getDay()];
+        return `<div style="display:flex;align-items:center;gap:12px;padding:6px 0;border-bottom:1px solid var(--border)">
+          <div style="width:50px;font-weight:600">${label}</div>
+          <div style="font-size:1.2rem">${getIcon(d.weatherCode)}</div>
+          <div style="flex:1;color:var(--text-dim);font-size:0.8rem">${d.weatherDescriptionZh}</div>
+          <div style="font-size:0.85rem"><b>${Math.round(d.tempMax)}°</b> <span style="color:var(--text-muted)">/ ${Math.round(d.tempMin)}°</span></div>
+        </div>`;
+      }).join('');
+
+      content.innerHTML = `
+        <div class="demo-card" style="margin:0;border:none;background:transparent;padding:0">
+          <div class="demo-location">
+            <div>
+              <h3>${location.city}</h3>
+              <div style="font-size:0.8rem;color:var(--text-muted)">${location.region}${location.region?', ':''}${location.country} · ${current.weatherDescriptionZh}</div>
+            </div>
+            <div class="meta">
+              <div>IP: ${location.ip}</div>
+              <div>${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}</div>
+              <div>TZ: ${location.timezone}</div>
+            </div>
+          </div>
+          <div class="demo-current">
+            <div class="demo-icon">${getIcon(current.weatherCode)}</div>
+            <div>
+              <div class="demo-temp">${Math.round(current.temperature)}${units.temperature}</div>
+              <div class="demo-desc">${current.weatherDescription} · 体感 ${Math.round(current.apparentTemperature)}${units.temperature}</div>
+            </div>
+          </div>
+          <div class="demo-grid">${gridItems.map(([label, value]) => `<div class="demo-item"><div class="label">${label}</div><div class="value">${value}</div></div>`).join('')}</div>
+          <h4 style="margin-top:16px">逐时预报</h4>
+          <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px">${hourlyHtml}</div>
+          <h4 style="margin-top:12px">每日预报</h4>
+          ${dailyHtml}
+        </div>`;
+    } catch (e) {
+      content.innerHTML = `<div style="color:var(--red);padding:16px">Error: ${e.message}</div>`;
+    }
+  }
+
+  function getIcon(code) {
+    const icons = {0:'☀️',1:'🌤️',2:'⛅',3:'☁️',45:'🌫️',48:'🌫️',51:'🌦️',53:'🌦️',55:'🌧️',56:'🌧️',57:'🌧️',61:'🌦️',63:'🌧️',65:'🌧️',66:'🌧️',67:'🌧️',71:'🌨️',73:'🌨️',75:'❄️',77:'🌨️',80:'🌦️',81:'🌧️',82:'⛈️',85:'🌨️',86:'❄️',95:'⛈️',96:'⛈️',99:'⛈️'};
+    return icons[code] || '❓';
+  }
+
+  // Auto-load demo on page load
+  loadDemo('auto');
+</script>
+</body>
+</html>
