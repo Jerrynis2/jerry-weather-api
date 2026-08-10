@@ -65,22 +65,45 @@ export default async function handler(
       }
       location = await geocodeCity(city);
     } else if (lat !== undefined && lon !== undefined && !isNaN(lat) && !isNaN(lon)) {
-      // 2. Coordinates
-      cacheKey = `coords:${lat},${lon}`;
+      // 2. Coordinates → reverse geocode for city name
+      cacheKey = `coords:${lat.toFixed(2)},${lon.toFixed(2)}`;
       const cached = cache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
         res.status(200).json({ ...cached.data, cached: true });
         return;
       }
+
+      // Reverse geocode GPS coordinates to get real city name
+      let cityName = 'GPS 定位';
+      let regionName = '';
+      let countryName = '';
+      let countryCode = '';
+
+      try {
+        const geoResp = await fetch(
+          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh`
+        );
+        if (geoResp.ok) {
+          const geoData = await geoResp.json() as any;
+          cityName = geoData.city || geoData.locality || geoData.principalSubdivision || '未知位置';
+          regionName = geoData.principalSubdivision || '';
+          countryName = geoData.countryName || '';
+          countryCode = geoData.countryCode || '';
+        }
+      } catch (e) {
+        console.error('Reverse geocoding failed:', e);
+      }
+
       location = {
         ip: 'coordinates',
-        city: 'Custom Location',
-        region: '',
-        country: '',
-        countryCode: '',
+        city: cityName,
+        region: regionName,
+        country: countryName,
+        countryCode,
         latitude: lat,
         longitude: lon,
         timezone: 'auto',
+        provider: 'gps',
       };
     } else {
       // 3. Auto-detect via IP (or IP override)

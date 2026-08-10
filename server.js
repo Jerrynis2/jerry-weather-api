@@ -310,7 +310,7 @@ const server = http.createServer(async (req, res) => {
 
   const url = new URL(req.url, `http://localhost:${PORT}`);
 
-  // ---- Static files (documentation page, favicon, etc.) ----
+  // ---- Static files (documentation page, embed script, etc.) ----
   if (url.pathname === '/' || url.pathname === '/index.html') {
     try {
       const html = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf-8');
@@ -323,6 +323,22 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ---- Embed script ----
+  if (url.pathname === '/embed.js') {
+    try {
+      const js = fs.readFileSync(path.join(__dirname, 'public', 'embed.js'), 'utf-8');
+      res.writeHead(200, {
+        'Content-Type': 'application/javascript; charset=utf-8',
+        'Cache-Control': 'public, max-age=3600',
+      });
+      res.end(js);
+    } catch {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('embed.js not found.');
+    }
+    return;
+  }
+
   // ---- API: Health Check ----
   if (url.pathname === '/api/health') {
     res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -330,7 +346,7 @@ const server = http.createServer(async (req, res) => {
       success: true,
       status: 'ok',
       service: 'JerryWeatherAPI',
-      version: '1.1.0',
+      version: '1.2.0',
       timestamp: new Date().toISOString(),
     }));
     return;
@@ -388,16 +404,38 @@ const server = http.createServer(async (req, res) => {
         }
         location = await geocodeCity(city);
       } else if (lat !== undefined && lon !== undefined && !isNaN(lat) && !isNaN(lon)) {
-        cacheKey = `coords:${lat},${lon}`;
+        cacheKey = `coords:${lat.toFixed(2)},${lon.toFixed(2)}`;
         const cached = cache.get(cacheKey);
         if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
           res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
           res.end(JSON.stringify({ ...cached.data, cached: true }));
           return;
         }
+
+        // Reverse geocode GPS coordinates to get real city name
+        let cityName = 'GPS 定位';
+        let regionName = '';
+        let countryName = '';
+        let countryCode = '';
+
+        try {
+          const geoResp = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh`
+          );
+          if (geoResp.ok) {
+            const geoData = await geoResp.json();
+            cityName = geoData.city || geoData.locality || geoData.principalSubdivision || '未知位置';
+            regionName = geoData.principalSubdivision || '';
+            countryName = geoData.countryName || '';
+            countryCode = geoData.countryCode || '';
+          }
+        } catch (e) {
+          console.error('Reverse geocoding failed:', e);
+        }
+
         location = {
-          ip: 'coordinates', city: 'Custom Location', region: '', country: '',
-          countryCode: '', latitude: lat, longitude: lon, timezone: 'auto', provider: 'manual-coords',
+          ip: 'coordinates', city: cityName, region: regionName, country: countryName,
+          countryCode, latitude: lat, longitude: lon, timezone: 'auto', provider: 'gps',
         };
       } else {
         cacheKey = ipOverride || getClientIp(req.headers);
@@ -451,7 +489,7 @@ server.listen(PORT, () => {
   console.log('');
   console.log('  ┌──────────────────────────────────────────────────┐');
   console.log('  │                                                  │');
-  console.log('  │   JerryWeatherAPI - Local Test Server v1.1        │');
+  console.log('  │   JerryWeatherAPI - Local Test Server v1.2        │');
   console.log('  │                                                  │');
   console.log(`  │   API Docs:   http://localhost:${PORT}              │`);
   console.log(`  │   Weather:   http://localhost:${PORT}/api/weather  │`);

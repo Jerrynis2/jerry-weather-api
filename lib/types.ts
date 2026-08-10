@@ -13,6 +13,7 @@ export interface GeoLocation {
   longitude: number;
   timezone: string;
   isp?: string;
+  provider?: string;
 }
 
 /** Current weather conditions */

@@ -312,7 +312,7 @@
 
   <!-- Main Content -->
   <main class="main">
-    <h1>JerryWeatherAPI <span class="badge badge-green">v1.1</span></h1>
+    <h1>JerryWeatherAPI <span class="badge badge-green">v1.2</span></h1>
     <p>自动获取访问者 IP 地理位置并返回对应天气信息的 RESTful API。支持按城市名、IP 地址、经纬度查询天气，数据全面，无需 API Key。</p>
 
     <!-- Overview -->
@@ -546,8 +546,67 @@ print(data[<span class="response-string">'current'</span>][<span class="response
 });
 console.log(data.current.weatherDescriptionZh); <span style="color:var(--text-muted)">// "晴天"</span></code></pre>
 
+    <!-- Embed -->
+    <h2 id="embed">嵌入到网站/博客</h2>
+    <div class="info-banner">
+      <strong>IP 定位精度说明：</strong>IP 定位基于运营商注册地址，通常只能精确到省级（如河北→石家庄），无法区分同省不同城市。要获取精确到城市的天气，请使用嵌入脚本，它会优先调用浏览器 GPS 定位，降级到 IP 定位。
+    </div>
+
+    <h3>方式一：嵌入脚本（推荐）</h3>
+    <p>在博客/网站中添加两行代码即可。脚本会自动请求浏览器定位权限，获取精确 GPS 坐标后调用 API。</p>
+    <pre><code><span style="color:var(--text-muted)">&lt;!-- 放在你想要显示天气的位置 --&gt;</span>
+&lt;div id="jerry-weather"&gt;&lt;/div&gt;
+&lt;script src="https://your-domain.vercel.app/embed.js"&gt;&lt;/script&gt;</code></pre>
+
+    <h4>自定义配置</h4>
+    <pre><code>&lt;div id="my-weather"&gt;&lt;/div&gt;
+&lt;script&gt;
+  window.JerryWeatherConfig = {
+    container: <span class="response-string">'#my-weather'</span>,   <span style="color:var(--text-muted)">// 容器选择器</span>
+    apiBase: <span class="response-string">'https://your-domain.vercel.app'</span>  <span style="color:var(--text-muted)">// API 地址</span>
+  };
+&lt;/script&gt;
+&lt;script src="https://your-domain.vercel.app/embed.js"&gt;&lt;/script&gt;</code></pre>
+
+    <h4>定位策略</h4>
+    <table>
+      <tr><th>优先级</th><th>方式</th><th>精度</th><th>说明</th></tr>
+      <tr><td>1</td><td>浏览器 GPS</td><td><span class="badge badge-green">精确</span></td><td>使用 <code>navigator.geolocation</code>，需用户授权。坐标缓存 24 小时</td></tr>
+      <tr><td>2</td><td>IP 定位</td><td><span class="badge badge-yellow">省级</span></td><td>自动降级。可能显示省会城市而非实际城市</td></tr>
+    </table>
+
+    <h4>JavaScript API</h4>
+    <pre><code><span style="color:var(--text-muted)">// 手动刷新天气</span>
+JerryWeather.refresh();
+
+<span style="color:var(--text-muted)">// 重新获取 GPS 定位（清除缓存后重试）</span>
+JerryWeather.relocate();
+
+<span style="color:var(--text-muted)">// 按城市搜索</span>
+JerryWeather.search(<span class="response-string">'邢台'</span>);
+
+<span style="color:var(--text-muted)">// 清除缓存的 GPS 坐标</span>
+JerryWeather.clearCache();</code></pre>
+
+    <h3>方式二：手动调用（带 GPS）</h3>
+    <p>如果你有自己的前端代码，可以直接获取 GPS 坐标后调用 API。API 会自动反向地理编码，返回真实城市名：</p>
+    <pre><code><span style="color:var(--accent)">if</span> (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(<span style="color:var(--accent)">async</span> (pos) => {
+    <span style="color:var(--accent)">const</span> resp = <span style="color:var(--accent)">await</span> fetch(
+      <span class="response-string">`/api/weather?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`</span>
+    );
+    <span style="color:var(--accent)">const</span> data = <span style="color:var(--accent)">await</span> resp.json();
+    console.log(data.location.city);       <span style="color:var(--text-muted)">// "邢台市"（自动反向地理编码）</span>
+    console.log(data.location.provider);   <span style="color:var(--text-muted)">// "gps"</span>
+    console.log(data.current.temperature);
+  }, (err) => {
+    <span style="color:var(--text-muted)">// GPS 被拒绝 → 降级到 IP 定位</span>
+    fetch(<span class="response-string">'/api/weather'</span>).then(r => r.json()).then(console.log);
+  });
+}</code></pre>
+
     <p style="margin-top:40px;color:var(--text-muted);font-size:0.78rem;border-top:1px solid var(--border);padding-top:16px">
-      JerryWeatherAPI v1.1 · Powered by Open-Meteo & ip-api.com · 无需 API Key · 可部署在 Vercel
+      JerryWeatherAPI v1.2 · Powered by Open-Meteo & ip-api.com · 无需 API Key · 可部署在 Vercel
     </p>
   </main>
 </div>

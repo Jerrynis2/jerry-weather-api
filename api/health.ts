@@ -11,7 +11,7 @@ export default function handler(_req: VercelRequest, res: VercelResponse): void 
     success: true,
     status: 'ok',
     service: 'JerryWeatherAPI',
-    version: '1.0.0',
+    version: '1.2.0',
     timestamp: new Date().toISOString(),
     uptime: process.uptime ? `${process.uptime().toFixed(1)}s` : undefined,
   });
