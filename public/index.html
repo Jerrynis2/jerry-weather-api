@@ -371,17 +371,29 @@
     </table>
 
     <h3>请求示例</h3>
-    <pre><code><span style="color:var(--text-muted)"># 自动检测 IP</span>
+    <pre><code><span style="color:var(--text-muted)"># 自动检测 IP（精度为省级，可能显示省会）</span>
 curl <span id="baseUrl1">http://localhost:3000</span>/api/weather
 
 <span style="color:var(--text-muted)"># 按城市查询</span>
 curl <span id="baseUrl2">http://localhost:3000</span>/api/weather?city=邢台
 
-<span style="color:var(--text-muted)"># 按经纬度查询</span>
+<span style="color:var(--text-muted)"># 按经纬度查询（GPS 精确定位，API 自动反向地理编码返回城市名）</span>
 curl <span id="baseUrl3">http://localhost:3000</span>/api/weather?lat=37.07&lon=114.50
 
 <span style="color:var(--text-muted)"># 按指定 IP 查询</span>
 curl <span id="baseUrl4">http://localhost:3000</span>/api/weather?ip=8.8.8.8</code></pre>
+
+    <div class="info-banner">
+      <strong>精确定位说明：</strong>IP 定位只能精确到省级（如河北 → 石家庄）。要获取精确到城市的天气，需先通过浏览器获取 GPS 坐标，再传入 <code>lat</code> 和 <code>lon</code> 参数。API 会自动反向地理编码，返回真实城市名。
+      <pre style="margin-top:8px"><code><span style="color:var(--text-muted)">// 浏览器 GPS → API 精确定位</span>
+navigator.geolocation.getCurrentPosition(<span style="color:var(--accent)">async</span> (pos) => {
+  <span style="color:var(--accent)">const</span> resp = <span style="color:var(--accent)">await</span> fetch(
+    <span class="response-string">`/api/weather?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`</span>
+  );
+  <span style="color:var(--accent)">const</span> data = <span style="color:var(--accent)">await</span> resp.json();
+  console.log(data.location.city); <span style="color:var(--text-muted)">// "邢台市"</span>
+});</code></pre>
+    </div>
 
     <h3>交互测试</h3>
     <div class="try-section">
@@ -390,6 +402,7 @@ curl <span id="baseUrl4">http://localhost:3000</span>/api/weather?ip=8.8.8.8</co
         <code id="tryUrl">/api/weather</code>
         <input type="text" class="try-input" id="weatherParam" placeholder="?city=邢台 或 ?ip=8.8.8.8" oninput="updateTryUrl()">
         <button class="try-btn" onclick="tryWeather()">发送请求</button>
+        <button class="try-btn" onclick="tryWeatherGps()" style="background:var(--green);color:#000">GPS 定位</button>
       </div>
       <div class="try-result" id="weatherResult"></div>
     </div>
@@ -665,6 +678,37 @@ JerryWeather.clearCache();</code></pre>
   function tryWeather() {
     const param = document.getElementById('weatherParam').value;
     sendRequest('/api/weather' + (param || ''), 'weatherResult', event.target);
+  }
+  function tryWeatherGps() {
+    const result = document.getElementById('weatherResult');
+    result.classList.add('visible');
+    result.classList.remove('success', 'error');
+    if (!navigator.geolocation) {
+      result.classList.add('error');
+      result.textContent = '浏览器不支持 GPS 定位';
+      return;
+    }
+    result.innerHTML = '<span class="spinner-sm"></span> 正在获取 GPS 定位（请在浏览器弹窗中允许）...';
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const url = `/api/weather?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`;
+        result.innerHTML = '<span class="spinner-sm"></span> GPS 定位成功，正在获取天气...';
+        try {
+          const resp = await fetch(url);
+          const data = await resp.json();
+          result.classList.add(resp.ok ? 'success' : 'error');
+          result.textContent = JSON.stringify(data, null, 2);
+        } catch (e) {
+          result.classList.add('error');
+          result.textContent = 'Error: ' + e.message;
+        }
+      },
+      (err) => {
+        result.classList.add('error');
+        result.textContent = 'GPS 定位失败: ' + (err.code === 1 ? '用户拒绝了定位授权' : err.message);
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 }
+    );
   }
   function tryLocation() {
     const param = document.getElementById('locationIp').value;
